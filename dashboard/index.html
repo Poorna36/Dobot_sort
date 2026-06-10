@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dobot Sort Master — Factory Telemetry Dashboard</title>
+    <meta name="description" content="Real-time SCADA monitoring dashboard for Dobot Color Sorting System. Live classification telemetry, conveyor queue tracking, and event logging.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ═══════════════ HEADER BAR ═══════════════ -->
+    <header id="header">
+        <div class="header-left">
+            <div class="logo">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <h1>DOBOT SORT MASTER</h1>
+                <span class="header-sub">Factory Sorting Telemetry Dashboard</span>
+            </div>
+        </div>
+        <div class="header-center">
+            <div class="status-pill" id="statusPill">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">SYSTEM ONLINE</span>
+            </div>
+            <div class="mode-pill" id="modePill">SIMULATION</div>
+        </div>
+        <div class="header-right">
+            <div class="hw-badges">
+                <div class="hw-badge" id="badgeEsp"><span class="hw-dot online"></span>ESP32 <strong>COM3</strong></div>
+                <div class="hw-badge" id="badgeDobot"><span class="hw-dot online"></span>BELT <strong>COM4</strong></div>
+            </div>
+            <div class="clock" id="clock">00:00:00</div>
+        </div>
+    </header>
+
+    <!-- ═══════════════ MAIN GRID ═══════════════ -->
+    <main id="main">
+
+        <!-- ─── LEFT: SCANNER VIEWPORT ─── -->
+        <section class="panel scanner-panel" id="panelScanner">
+            <div class="panel-title-bar">
+                <h2>LIVE SCANNER VIEWPORT</h2>
+                <span class="tag">CAM 0</span>
+            </div>
+            <div class="scanner-body">
+                <div class="scanner-frame" id="scannerFrame">
+                    <!-- Corner brackets -->
+                    <span class="bracket tl"></span>
+                    <span class="bracket tr"></span>
+                    <span class="bracket bl"></span>
+                    <span class="bracket br"></span>
+                    <!-- Sweep laser -->
+                    <div class="laser" id="laser"></div>
+                    <!-- Grid overlay -->
+                    <svg class="grid-overlay" viewBox="0 0 640 480" preserveAspectRatio="none">
+                        <line x1="320" y1="0" x2="320" y2="480" stroke="rgba(255,255,255,.04)" stroke-dasharray="6,6"/>
+                        <line x1="0" y1="240" x2="640" y2="240" stroke="rgba(255,255,255,.04)" stroke-dasharray="6,6"/>
+                        <circle cx="320" cy="240" r="80" fill="none" stroke="rgba(255,255,255,.03)"/>
+                    </svg>
+                    <!-- Bounding box ROI -->
+                    <div class="roi" id="roi">
+                        <span class="roi-tag" id="roiTag">—</span>
+                    </div>
+                    <!-- Flash overlay -->
+                    <div class="flash" id="flash"></div>
+                </div>
+            </div>
+            <!-- Classification details strip -->
+            <div class="cls-strip">
+                <div class="cls-item"><span class="cls-label">Prediction</span><span class="cls-val" id="clsColor">—</span></div>
+                <div class="cls-item"><span class="cls-label">Confidence</span>
+                    <div class="mini-bar"><div class="mini-fill" id="clsBar"></div></div>
+                    <span class="cls-val" id="clsConf">0%</span>
+                </div>
+                <div class="cls-item"><span class="cls-label">Engine</span><span class="cls-val" id="clsModel">—</span></div>
+            </div>
+        </section>
+
+        <!-- ─── RIGHT COLUMN ─── -->
+        <section class="right-col">
+
+            <!-- Controls -->
+            <div class="panel controls-panel" id="panelControls">
+                <button class="btn btn-accent" id="btnInject">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Place Mock Cube
+                </button>
+                <button class="btn btn-ghost" id="btnToggle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Auto Sim
+                </button>
+                <button class="btn btn-ghost btn-danger" id="btnReset">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Reset
+                </button>
+            </div>
+
+            <!-- FIFO Queue -->
+            <div class="panel queue-panel" id="panelQueue">
+                <div class="panel-title-bar">
+                    <h2>FIFO SORTING PIPELINE</h2>
+                    <span class="tag" id="queueCount">0 queued</span>
+                </div>
+                <div class="conveyor-wrap">
+                    <div class="conveyor-track">
+                        <div class="track-stripe"></div>
+                        <div class="track-items" id="trackItems"></div>
+                    </div>
+                    <div class="zone-labels">
+                        <span>📷 IR1 Camera</span>
+                        <span>⚙ IR2 Servo 1<br><small>Green / Blue</small></span>
+                        <span>⚙ IR3 Servo 2<br><small>Yellow / Red</small></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="panel stats-panel" id="panelStats">
+                <div class="panel-title-bar">
+                    <h2>SORTING STATISTICS</h2>
+                    <span class="total-badge">TOTAL <strong id="totalCount">0</strong></span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-row" data-color="green">
+                        <span class="stat-dot green"></span><span class="stat-name">GREEN</span>
+                        <div class="stat-bar"><div class="stat-fill green" id="barGreen"></div></div>
+                        <span class="stat-num" id="cntGreen">0</span>
+                    </div>
+                    <div class="stat-row" data-color="blue">
+                        <span class="stat-dot blue"></span><span class="stat-name">BLUE</span>
+                        <div class="stat-bar"><div class="stat-fill blue" id="barBlue"></div></div>
+                        <span class="stat-num" id="cntBlue">0</span>
+                    </div>
+                    <div class="stat-row" data-color="yellow">
+                        <span class="stat-dot yellow"></span><span class="stat-name">YELLOW</span>
+                        <div class="stat-bar"><div class="stat-fill yellow" id="barYellow"></div></div>
+                        <span class="stat-num" id="cntYellow">0</span>
+                    </div>
+                    <div class="stat-row" data-color="red">
+                        <span class="stat-dot red"></span><span class="stat-name">RED</span>
+                        <div class="stat-bar"><div class="stat-fill red" id="barRed"></div></div>
+                        <span class="stat-num" id="cntRed">0</span>
+                    </div>
+                    <div class="stat-row" data-color="unknown">
+                        <span class="stat-dot unknown"></span><span class="stat-name">UNKNOWN</span>
+                        <div class="stat-bar"><div class="stat-fill unknown" id="barUnknown"></div></div>
+                        <span class="stat-num" id="cntUnknown">0</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ═══════════════ EVENT LOG FOOTER ═══════════════ -->
+    <footer class="panel log-panel" id="panelLog">
+        <div class="panel-title-bar">
+            <h2>EVENT LOG</h2>
+            <span class="log-live"><span class="blink-dot"></span>LIVE</span>
+        </div>
+        <div class="log-scroll" id="logScroll">
+            <div class="log-line sys">[SYSTEM] Dashboard initialized. Simulation mode active.</div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
