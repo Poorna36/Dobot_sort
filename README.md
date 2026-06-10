@@ -7,25 +7,16 @@
 
 A real-time color-based cube sorting system built on the Dobot Magician conveyor belt. A webcam captures cubes passing through a scan zone, a two-stage KNN→SVM machine learning classifier identifies the cube color, and ESP32-controlled servo motors physically divert cubes into color-coded bins. Unknown/unidentified objects trigger the Dobot robotic arm to remove them to a reject box.
 
----
 
-## Team Context
-
-- College AIML project
-- 4-day build timeline
-- Non-hardware-oriented team
-- Uses college-owned Dobot Magician (non-invasive setup — no permanent modifications)
-
----
 
 ## Colors Handled
 
 | Color | Servo Zone | Action |
 |---|---|---|
-| Green | IR2 zone — left servo | Pushed left into Green bin |
-| Blue | IR2 zone — right servo | Pushed right into Blue bin |
-| Yellow | IR3 zone — left servo | Pushed left into Yellow bin |
-| Red | IR3 zone — right servo | Pushed right into Red bin |
+| Green | IR2 zone —  servo | Pushed left into Green bin |
+| Blue | IR2 zone —  servo | Pushed right into Blue bin |
+| Yellow | IR3 zone —  servo | Pushed left into Yellow bin |
+| Red | IR3 zone —  servo | Pushed right into Red bin |
 | Unknown | IR3 zone — end of belt | Belt stops, arm removes to reject box |
 
 ---
@@ -39,7 +30,7 @@ A real-time color-based cube sorting system built on the Dobot Magician conveyor
 | ESP32 | Signal bridge — IR input, servo output |
 | Logitech C270 Webcam | Single-shot image capture triggered by IR1 |
 | 3x FC-51 IR Sensors | Cube detection at camera zone, pusher zone 1, pusher zone 2 |
-| 4x SG90 Servo Motors | Physical cube pushers |
+| 2x SG90 Servo Motors | Physical cube pushers |
 | 6V Battery (4xAA) | Powers servos via breadboard |
 | Breadboard | Common ground + power distribution |
 
@@ -81,11 +72,10 @@ The system uses a robust 3-stage computer vision and machine learning pipeline t
 
 ## Key Design Decisions
 
-- **Laptop as brain** — all ML inference, logic, and orchestration on laptop. ESP32 is dumb signal bridge only.
+- **Laptop as brain** — all ML inference, logic, and orchestration on laptop. ESP32 is  signal bridge only.
 - **Two-stage ML** — KNN for fast confident cases, SVM for ambiguous cases. Not deep learning — intentional choice for speed, explainability, and small dataset.
 - **Queue-based sorting** — multiple cubes can be on belt simultaneously. Each cube's color is queued at IR1 and dequeued when it reaches its servo zone.
 - **IR-triggered capture** — camera does not run continuously. One clean frame captured per cube, triggered by IR1 sensor.
-- **Non-invasive hardware** — all components clip/sit on belt without permanent modification.
 
 ---
 
